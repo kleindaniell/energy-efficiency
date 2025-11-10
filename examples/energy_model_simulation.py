@@ -1,7 +1,3 @@
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
-
 from sd_simulation import Simulation, SimVariable, VariableType, InfluenceMode
 from typing import Dict, List
 import plotly.graph_objects as go
