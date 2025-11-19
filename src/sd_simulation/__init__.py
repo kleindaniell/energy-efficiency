@@ -6,6 +6,10 @@ from .engine import (
     Influence,
 )
 
+from .models import (
+    fapergs_rge_model
+)
+
 __all__ = [
     "Simulation",
     "SimVariable",

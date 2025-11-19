@@ -9,7 +9,7 @@ def create_fapergs_rge_model() -> Dict[str, SimVariable]:
     # Parameters
     params = {
         "TARIFA_R$/MWh": 650,
-        "ICMS_TAU": 0.25,
+        "ICMS_TAU": 0.18,
         "theta1": 0.0008,
         "eta": 0.3,
         "rebote_frac": 0.1,
