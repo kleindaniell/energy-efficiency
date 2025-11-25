@@ -2,18 +2,16 @@ from .engine import (
     Simulation,
     SimVariable,
     VariableType,
-    InfluenceMode,
-    Influence,
+    MockSimVariable, # Adicionado para o grafo de dependências
 )
 
-from .models import (
-    fapergs_rge_model
-)
+# from .models import ( # Comentado, pois o modelo antigo pode não ser compatível
+#     fapergs_rge_model
+# )
 
 __all__ = [
     "Simulation",
     "SimVariable",
     "VariableType",
-    "InfluenceMode",
-    "Influence",
+    "MockSimVariable",
 ]
