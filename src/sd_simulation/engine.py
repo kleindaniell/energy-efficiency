@@ -3,6 +3,7 @@ import numpy as np
 from enum import Enum
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from pyvis.network import Network
 # import networkx as nx
 
 class VariableType(Enum):
@@ -202,7 +203,55 @@ class Simulation:
         var2_history = self._variables[var2_name].history
         return var1_history, var2_history
 
-    def plot_simulation_results(self, 
+    def plot_dependencies_graph(self, 
+                                dependencies_graph: Dict[str, List[str]],
+                                graph_name: str = "dependency",
+                                save_path: str = "notebooks/dependency.html") -> None:
+        """
+        Plota o grafo de dependências usando PyVis.
+
+        Args:
+            dependencies_graph (Dict[str, List[str]]): O grafo de dependências gerado por get_dependencies_graph.
+            graph_name (str): Nome do grafo para o título.
+            save_path (str): Caminho para salvar o gráfico como um arquivo HTML.
+        """
+        net = Network(notebook=True, height="1024px", width="100%", 
+                      cdn_resources='remote', directed=True)
+        net.toggle_physics(True) # Habilita física para melhor layout inicial
+        
+        # Adicionar nós
+        all_nodes = set()
+        for node, deps in dependencies_graph.items():
+            all_nodes.add(node)
+            for dep in deps:
+                all_nodes.add(dep)
+
+        for node in all_nodes:
+            net.add_node(node, label=node), #title=node, 
+                         #color="#009688", size=45) # Further increased node size
+
+        # Adicionar arestas
+        for node, deps in dependencies_graph.items():
+            for dep in deps:
+                net.add_edge(dep, node)#, arrows="to", color="#9E9E9E") # Cor cinza para arestas
+        
+        net.set_options(
+            """
+            const options = {
+                "physics": {
+                    "barnesHut": {
+                    "gravitationalConstant": -6800
+                    },
+                    "minVelocity": 0.75
+                }
+            }            
+        """
+        )
+        # net.show_buttons(filter_=['physics'])
+        net.write_html(save_path)
+        print(f"Grafo de dependências '{graph_name}' salvo em: {save_path}")
+
+    def plot_simulation_results(self,
                                 variables_to_plot: Optional[List[str]] = None,
                                 secondary_y_variables: Optional[List[str]] = None,
                                 save_path: Optional[str] = None) -> None:
@@ -259,160 +308,6 @@ class Simulation:
         else:
             fig.show()
 
-    # def plot_dependency_graph(self, 
-    #                           variable_types: Optional[List[VariableType]] = None,
-    #                           save_path: Optional[str] = None) -> None:
-    #     """
-    #     Plota o grafo de dependências das variáveis usando NetworkX e Plotly.
-
-    #     Args:
-    #         variable_types (Optional[List[VariableType]]): Lista de tipos de variáveis a serem incluídos.
-    #                                                         Se None, todos os tipos são incluídos.
-    #         save_path (Optional[str]): Caminho para salvar o gráfico como um arquivo HTML.
-    #                                    Se None, o gráfico será exibido interativamente.
-    #     """
-    #     dependencies_graph = self.get_dependencies_graph()
-        
-    #     if not dependencies_graph and not self._variables:
-    #         print("Nenhuma variável ou dependência encontrada para plotar.")
-    #         return
-
-    #     G = nx.DiGraph()
-        
-    #     # Filter variables based on type if provided
-    #     filtered_variables = {}
-    #     for name, var_obj in self._variables.items():
-    #         if variable_types is None or var_obj.var_type in variable_types:
-    #             filtered_variables[name] = var_obj
-
-    #     # Add nodes with their types
-    #     node_types = {}
-    #     for var_name, var_obj in filtered_variables.items():
-    #         G.add_node(var_name)
-    #         node_types[var_name] = var_obj.var_type
-
-    #     # Add edges, considering only dependencies between filtered variables
-    #     for target, deps in dependencies_graph.items():
-    #         if target in filtered_variables:
-    #             for dep in deps:
-    #                 if dep in filtered_variables:
-    #                     G.add_edge(dep, target) # Edge from dependency to target
-
-    #     if not G.nodes():
-    #         print("Nenhuma variável correspondente aos filtros encontrados para plotar.")
-    #         return
-
-    #     # Use a layout algorithm
-    #     pos = nx.spring_layout(G, seed=42, k=0.7, iterations=50) # k regulates distance between nodes
-
-    #     # Define node colors based on VariableType
-    #     type_colors = {
-    #         VariableType.STOCK: 'DarkRed',
-    #         VariableType.FLOW: 'MediumBlue',
-    #         VariableType.AUXILIARY: 'Green',
-    #         VariableType.CONSTANT: 'Purple'
-    #     }
-    #     node_colors = [type_colors.get(node_types.get(node, VariableType.AUXILIARY), 'LightSkyBlue') for node in G.nodes()]
-    #     node_labels = [f"{node}<br>({node_types.get(node, 'N/A').value.capitalize()})" for node in G.nodes()]
-
-    #     edge_x = []
-    #     edge_y = []
-    #     for edge in G.edges():
-    #         x0, y0 = pos[edge[0]]
-    #         x1, y1 = pos[edge[1]]
-    #         edge_x.extend([x0, x1, None])
-    #         edge_y.extend([y0, y1, None])
-
-    #     edge_trace = go.Scatter(
-    #         x=edge_x, y=edge_y,
-    #         line=dict(width=1, color='#888'),
-    #         hoverinfo='none',
-    #         mode='lines',
-    #         showlegend=False
-    #     )
-
-    #     node_x = []
-    #     node_y = []
-    #     for node in G.nodes():
-    #         x, y = pos[node]
-    #         node_x.append(x)
-    #         node_y.append(y)
-
-    #     node_trace = go.Scatter(
-    #         x=node_x, y=node_y,
-    #         mode='markers+text',
-    #         hoverinfo='text',
-    #         text=node_labels,
-    #         textposition="bottom center",
-    #         marker=dict(
-    #             showscale=False,
-    #             color=node_colors,
-    #             size=15,
-    #             line=dict(width=2, color='DarkSlateGrey')
-    #         )
-    #     )
-        
-    #     annotations = []
-    #     # Add arrows for each edge
-    #     for edge in G.edges():
-    #         x0, y0 = pos[edge[0]]
-    #         x1, y1 = pos[edge[1]]
-
-    #         # Calculate arrow position slightly offset from the target node
-    #         # This makes the arrow head visible and not covered by the node
-    #         arrow_length_factor = 0.05
-    #         dx = x1 - x0
-    #         dy = y1 - y0
-    #         length = np.sqrt(dx**2 + dy**2)
-            
-    #         if length > 0:
-    #             # Shorten the arrow by a small factor from the target end
-    #             arrow_dx = dx / length * (length - arrow_length_factor)
-    #             arrow_dy = dy / length * (length - arrow_length_factor)
-                
-    #             annotations.append(
-    #                 dict(
-    #                     ax=x0, ay=y0, axref='x', ayref='y',
-    #                     x=x0 + arrow_dx, y=y0 + arrow_dy, xref='x', yref='y',
-    #                     showarrow=True,
-    #                     arrowhead=3, # Arrow style
-    #                     arrowsize=1,
-    #                     arrowwidth=1,
-    #                     arrowcolor='#888'
-    #                 )
-    #             )
-
-    #     # Create legend entries manually
-    #     legend_traces = []
-    #     for var_type, color in type_colors.items():
-    #         legend_traces.append(
-    #             go.Scatter(
-    #                 x=[None], y=[None],
-    #                 mode='markers',
-    #                 marker=dict(size=10, color=color, line=dict(width=2, color='DarkSlateGrey')),
-    #                 name=var_type.value.capitalize(),
-    #                 hoverinfo='none',
-    #                 showlegend=True
-    #             )
-    #         )
-
-    #     fig = go.Figure(data=[edge_trace, node_trace] + legend_traces,
-    #                     layout=go.Layout(
-    #                         title='Grafo de Dependências das Variáveis',
-    #                         titlefont_size=16,
-    #                         showlegend=True,
-    #                         hovermode='closest',
-    #                         margin=dict(b=20,l=5,r=5,t=40),
-    #                         annotations=annotations,
-    #                         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-    #                         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
-    #                     )
-        
-    #     if save_path:
-    #         fig.write_html(save_path)
-    #         print(f"Gráfico de dependências salvo em: {save_path}")
-    #     else:
-    #         fig.show()
 
     def get_dependencies_graph(self) -> Dict[str, List[str]]:
         """
@@ -432,7 +327,7 @@ class Simulation:
             for attr_name in dir(self._model_object):
                 attr_value = getattr(self._model_object, attr_name)
                 if isinstance(attr_value, SimVariable):
-                    mock_sim_var = MockSimVariable(attr_name)
+                    mock_sim_var = MockSimVariable(attr_name, initial_value=attr_value.initial_value)
                     setattr(mock_model_object, attr_name, mock_sim_var)
                     mock_variables_map[attr_name] = mock_sim_var
 
