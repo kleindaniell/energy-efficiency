@@ -1,0 +1,321 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 1024px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#2196F3", "id": "eficiencia", "label": "eficiencia", "shape": "dot", "size": 45, "title": "Estoque_Eficiencia\n\n          Papel no Modelo: Representa o n\u00edvel tecnol\u00f3gico atual da ind\u00fastria.\n          Acumula os ganhos dos projetos implementados e sofre deprecia\u00e7\u00e3o\n          (obsolesc\u00eancia tecnol\u00f3gica).\n\n          Mundo Real: \u00c9 o parque de m\u00e1quinas e equipamentos. Um valor de 0.10\n          significa que a empresa tem 10% de efici\u00eancia relativa acima de uma\n          base obsoleta. No mundo real, corresponde \u00e0 substitui\u00e7\u00e3o de motores\n          antigos por alto rendimento, ilumina\u00e7\u00e3o LED ou automa\u00e7\u00e3o de processos\n          t\u00e9rmicos.\n          "}, {"color": "#9E9E9E", "id": "TEMPO_RESPOSTA_MERCADO", "label": "TEMPO_RESPOSTA_MERCADO", "shape": "dot", "size": 45, "title": "Tempo_Resposta_Mercado\n\n          Papel no Modelo: Par\u00e2metro de Delay.\n\n          Mundo Real: O tempo entre a empresa reduzir seus custos (ficar mais eficiente)\n          e o mercado perceber isso e comprar mais (aumentar a produ\u00e7\u00e3o).\n\n          Impacto: Se a empresa investe hoje, a produ\u00e7\u00e3o n\u00e3o sobe amanh\u00e3. Leva meses\n          (no modelo, 12 meses) para renegociar contratos e ganhar market share.\n          "}, {"color": "#009688", "id": "icms_producao", "label": "icms_producao", "shape": "dot", "size": 45, "title": "Arrecadacao_ICMS_Producao\n\n          Papel no Modelo: Vari\u00e1vel auxiliar. Calcula quanto o governo arrecada\n          sobre a venda dos produtos industrializados (sa\u00edda da f\u00e1brica).\n\n          Mundo Real: \u00c9 o ICMS sobre a nota fiscal do produto vendido.\n          Se a efici\u00eancia energ\u00e9tica torna a empresa mais competitiva\n          e ela cresce, esta arrecada\u00e7\u00e3o sobe.\n          "}, {"color": "#9E9E9E", "id": "fator_rebote", "label": "fator_rebote", "shape": "dot", "size": 45, "title": "Fator_Rebote\n\n          Papel no Modelo: Par\u00e2metro de sensibilidade (0 a 1).\n          Representa o \"Efeito Jevons\" ou paradoxo da efici\u00eancia.\n\n          Mundo Real: Fen\u00f4meno econ\u00f4mico onde o aumento da efici\u00eancia diminui\n          o custo do uso do recurso, o que acaba incentivando um uso maior do\n          que o previsto.\n          Exemplo: Como a ilumina\u00e7\u00e3o LED \u00e9 barata, a f\u00e1brica deixa as luzes\n          acesas por mais tempo ou em \u00e1reas que antes ficavam desligadas.\n          "}, {"color": "#9E9E9E", "id": "TARIFA_R_MWh", "label": "TARIFA_R_MWh", "shape": "dot", "size": 45, "title": "Tarifa_Energia\n\n          Pre\u00e7o da energia (R$/MWh). Ex\u00f3gena, definida pela ANEEL/Concession\u00e1ria.\n          "}, {"color": "#9E9E9E", "id": "limite_eficiencia", "label": "limite_eficiencia", "shape": "dot", "size": 45, "title": "Limite_Tecnico_Eficiencia\n\n          Papel no Modelo: Par\u00e2metro (Restri\u00e7\u00e3o).\n          Define o teto m\u00e1ximo de ganho tecnol\u00f3gico (ex: 60%).\n\n          Mundo Real: A 2\u00aa Lei da Termodin\u00e2mica. N\u00e3o existe motor com 100% de rendimento.\n          Este limite impede que o modelo calcule economias irreais ou infinitas.\n          "}, {"color": "#009688", "id": "icms_energia", "label": "icms_energia", "shape": "dot", "size": 45, "title": "Arrecadacao_ICMS_Energia\n\n          Papel no Modelo: Vari\u00e1vel auxiliar. Calcula quanto o governo arrecada\n          especificamente sobre a conta de luz da ind\u00fastria.\n\n          Mundo Real: \u00c9 a receita tribut\u00e1ria direta da venda de eletricidade.\n          Quando a empresa se torna eficiente, esta arrecada\u00e7\u00e3o cai.\n          "}, {"color": "#009688", "id": "competitividade_alvo", "label": "competitividade_alvo", "shape": "dot", "size": 45, "title": "Competitividade_Potencial_Alvo\n\n          Papel no Modelo: \u00c9 a meta num\u00e9rica que o sistema tenta alcan\u00e7ar,\n          criando o \"gap\" que impulsiona a mudan\u00e7a com atraso temporal.\n\n          Mundo Real: Representa a realidade interna da f\u00e1brica\n          antes que o mercado externo perceba e reaja.\n          "}, {"color": "#9E9E9E", "id": "ICMS_ALIQUOTA", "label": "ICMS_ALIQUOTA", "shape": "dot", "size": 45, "title": "Aliquota_ICMS\n\n          Percentual do imposto estadual (ex: 17%).\n          "}, {"color": "#9E9E9E", "id": "CAPITAL_SATURACAO", "label": "CAPITAL_SATURACAO", "shape": "dot", "size": 45, "title": "Capital_Saturacao_Marginal\n\n          Papel no Modelo: Par\u00e2metro de N\u00e3o-Linearidade.\n\n          Mundo Real: Capacidade de absor\u00e7\u00e3o de investimento.\n          Se voc\u00ea der 10 milh\u00f5es para uma padaria reformar a\n          parte el\u00e9trica em uma semana, ela n\u00e3o consegue\n          gastar isso eficientemente.\n          O excesso de dinheiro gera desperd\u00edcio.\n          "}, {"color": "#009688", "id": "consumo_energia", "label": "consumo_energia", "shape": "dot", "size": 45, "title": "Consumo_Energia\n\n          Papel no Modelo: Determina a demanda real de energia da f\u00e1brica em MWh.\n\n          Mundo Real: O valor que o medidor da concession\u00e1ria registra.\n          N\u00e3o \u00e9 apenas uma fun\u00e7\u00e3o t\u00e9cnica; \u00e9 afetada pelo comportamento de uso.\n          "}, {"color": "#2196F3", "id": "capital_investimento", "label": "capital_investimento", "shape": "dot", "size": 45, "title": "Capital_Investimento_EE\n\n          Papel no Modelo: Acumula os recursos financeiros destinados exclusivamente\n          para projetos de efici\u00eancia energ\u00e9tica. \u00c9 alimentado por uma fra\u00e7\u00e3o do\n          faturamento e aportes governamentais.\n\n          Mundo Real: O \"Caixa\" ou or\u00e7amento de CAPEX (Capital Expenditure) da empresa\n          reservado para melhorias. Muitas PMEs n\u00e3o t\u00eam esse caixa separado, o que o\n          modelo captura ao depender da TAXA_REINVESTIMENTO.\n          "}, {"color": "#9E9E9E", "id": "FORCA_POLITICA", "label": "FORCA_POLITICA", "shape": "dot", "size": 45, "title": "Forca_Politica_Publica\n\n          Papel no Modelo: Vari\u00e1vel ex\u00f3gena (0 a 1). Atua em dois pontos: injeta capital\n          (aporte_governo) e acelera a implementa\u00e7\u00e3o (fator_aceleracao).\n\n          Mundo Real: Programas como editais da FAPERGS, linhas de cr\u00e9dito subsidiadas\n          (BNDES/BRDE) ou pol\u00edticas de desburocratiza\u00e7\u00e3o.\n          "}, {"color": "#9E9E9E", "id": "TEMPO_IMPLEMENTACAO", "label": "TEMPO_IMPLEMENTACAO", "shape": "dot", "size": 45, "title": "Tempo_Implementacao_Projetos\n\n          Papel no Modelo: Par\u00e2metro de Delay.\n\n          Mundo Real: O tempo entre decidir gastar o dinheiro (aprovar o or\u00e7amento)\n          e a obra estar pronta gerando economia. Envolve licita\u00e7\u00e3o, entrega de\n          fornecedores e instala\u00e7\u00e3o.\n\n          Impacto: Dinheiro parado no estoque de capital n\u00e3o gera efici\u00eancia.\n          A Pol\u00edtica P\u00fablica pode tentar reduzir este tempo (desburocratiza\u00e7\u00e3o).\n          "}, {"color": "#9E9E9E", "id": "sensib_invest_eff", "label": "sensib_invest_eff", "shape": "dot", "size": 45, "title": "Sensib_Invest_Eficiencia\n\n          Fator de convers\u00e3o t\u00e9cnica. Define a qualidade da engenharia.\n          Um valor baixo significa que gasta-se muito dinheiro para pouco ganho t\u00e9cnico (projetos mal feitos).\n          "}, {"color": "#009688", "id": "gasto_implementacao", "label": "gasto_implementacao", "shape": "dot", "size": 45, "title": "Fluxo_Gasto_Implementacao\n\n          Papel no Modelo: A taxa na qual o dinheiro vira \"obra\".\n          \u00c9 regulada pelo TEMPO_IMPLEMENTACAO.\n\n          Mundo Real: A execu\u00e7\u00e3o f\u00edsica dos projetos.\n          N\u00e3o basta ter dinheiro (capital_investimento); \u00e9 predciso tempo para\n          contratar, instalar e comissionar equipamentos.\n          "}, {"color": "#009688", "id": "icms_total", "label": "icms_total", "shape": "dot", "size": 45, "title": "Arrecadacao_Total\n\n          Papel no Modelo: \u00c9 o indicador l\u00edquido de sucesso fiscal.\n\n          Mundo Real: O total de dinheiro que entra para o Estado vindo da ind\u00fastria.\n          "}, {"color": "#2196F3", "id": "producao", "label": "producao", "shape": "dot", "size": 45, "title": "Producao_Industrial\n\n          Papel no Modelo: A vari\u00e1vel central de atividade econ\u00f4mica. Cresce\n          logisticamente baseada na competitividade e limita-se pela capacidade do mercado.\n\n          Mundo Real: O volume de bens produzidos e vendidos. \u00c9 a base de\n          c\u00e1lculo para o faturamento e para a tributa\u00e7\u00e3o (ICMS).\n          "}, {"color": "#9E9E9E", "id": "CAPACIDADE_MAXIMA", "label": "CAPACIDADE_MAXIMA", "shape": "dot", "size": 45, "title": "Capacidade_Maxima_Mercado\n\n          O tamanho total do mercado endere\u00e7\u00e1vel.\n          Impede que a produ\u00e7\u00e3o cres\u00e7a ao infinito.\n          "}, {"color": "#9E9E9E", "id": "theta_intensidade", "label": "theta_intensidade", "shape": "dot", "size": 45, "title": "Intensidade_Energetica_Inicial\n\n          Papel no Modelo: Par\u00e2metro t\u00e9cnico. Define a \"pegada energ\u00e9tica\" base do produto.\n\n          Mundo Real: Quantos MWh s\u00e3o necess\u00e1rios para produzir R$ 1,00 de produto antes de\n          qualquer moderniza\u00e7\u00e3o. Varia conforme o setor\n          (ex: metal\u00fargica tem theta alto; montagem eletr\u00f4nica tem theta baixo).\n          \u00c9 calculado pelo Consumo Energ\u00e9tico (MWH) sobre a Produ\u00e7\u00e3o (R$).\n          "}, {"color": "#9E9E9E", "id": "TAXA_REINVESTIMENTO", "label": "TAXA_REINVESTIMENTO", "shape": "dot", "size": 45, "title": "Pct_Reinvestimento_Faturamento\n\n          Papel no Modelo: Define a fra\u00e7\u00e3o da receita bruta que volta\n          para o estoque de capital de efici\u00eancia.\n\n          Mundo Real: A propens\u00e3o do empres\u00e1rio a reinvestir. Em cen\u00e1rios de\n          crise, essa taxa tende a zero. O modelo assume 0.5% (0.005), o que\n          \u00e9 conservador e realista para PMEs.\n          "}, {"color": "#2196F3", "id": "competitividade", "label": "competitividade", "shape": "dot", "size": 45, "title": "Indice_Competitividade\n\n          Papel no Modelo: Um \u00edndice normalizado (base 1.0).\n          Se \u003e 1.0, a empresa ganha mercado; se \u003c 1.0, perde ou estagna.\n\n          Mundo Real: Representa a vantagem comparativa da ind\u00fastria ga\u00facha frente a\n          competidores de outros estados ou pa\u00edses, derivada aqui especificamente da\n          redu\u00e7\u00e3o de custos operacionais via efici\u00eancia energ\u00e9tica.\n          Observe o delay (TEMPO_RESPOSTA_MERCADO): o mercado demora a perceber que\n          a empresa se tornou mais competitiva.\n          "}, {"color": "#9E9E9E", "id": "sensib_comp_prod", "label": "sensib_comp_prod", "shape": "dot", "size": 45, "title": "Sensib_Competitividade_Producao\n\n          Papel no Modelo: Atua como um amplificador que converte\n          o ganho de competitividade em taxa de crescimento da produ\u00e7\u00e3o.\n\n          Mundo Real: Representa a elasticidade do mercado; define o quanto\n          as vendas aumentam se o produto ficar um pouco mais barato ou melhor.\n          "}, {"color": "#9E9E9E", "id": "CUSTO_EFICIENCIA", "label": "CUSTO_EFICIENCIA", "shape": "dot", "size": 45, "title": "Custo_Para_Ganho_Eficiencia\n\n          Papel no Modelo: Par\u00e2metro de Custo Unit\u00e1rio.\n\n          Mundo Real: Quanto custa (em R$) para aumentar a efici\u00eancia\n          em 1 ponto percentual (ou adimensional).\n          Define o pre\u00e7o da tecnologia\n          "}]);
+                  edges = new vis.DataSet([{"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "CAPITAL_SATURACAO", "label": "positive", "title": "Impact: positive", "to": "capital_investimento"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "FORCA_POLITICA", "label": "positive", "title": "Impact: positive", "to": "capital_investimento"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "TAXA_REINVESTIMENTO", "label": "positive", "title": "Impact: positive", "to": "capital_investimento"}, {"arrows": "to", "color": "#F44336", "font": {"align": "middle", "color": "#F44336", "size": 12}, "from": "capital_investimento", "label": "negative", "title": "Impact: negative", "to": "capital_investimento"}, {"arrows": "to", "color": "#F44336", "font": {"align": "middle", "color": "#F44336", "size": 12}, "from": "gasto_implementacao", "label": "negative", "title": "Impact: negative", "to": "capital_investimento"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "producao", "label": "positive", "title": "Impact: positive", "to": "capital_investimento"}, {"arrows": "to", "color": "#F44336", "font": {"align": "middle", "color": "#F44336", "size": 12}, "from": "TEMPO_RESPOSTA_MERCADO", "label": "negative", "title": "Impact: negative", "to": "competitividade"}, {"arrows": "to", "color": "#F44336", "font": {"align": "middle", "color": "#F44336", "size": 12}, "from": "competitividade", "label": "negative", "title": "Impact: negative", "to": "competitividade"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "competitividade_alvo", "label": "positive", "title": "Impact: positive", "to": "competitividade"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "eficiencia", "label": "positive", "title": "Impact: positive", "to": "competitividade_alvo"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "eficiencia", "label": "positive", "title": "Impact: positive", "to": "consumo_energia"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "fator_rebote", "label": "positive", "title": "Impact: positive", "to": "consumo_energia"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "producao", "label": "positive", "title": "Impact: positive", "to": "consumo_energia"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "theta_intensidade", "label": "positive", "title": "Impact: positive", "to": "consumo_energia"}, {"arrows": "to", "color": "#F44336", "font": {"align": "middle", "color": "#F44336", "size": 12}, "from": "CUSTO_EFICIENCIA", "label": "negative", "title": "Impact: negative", "to": "eficiencia"}, {"arrows": "to", "color": "#F44336", "font": {"align": "middle", "color": "#F44336", "size": 12}, "from": "eficiencia", "label": "negative", "title": "Impact: negative", "to": "eficiencia"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "gasto_implementacao", "label": "positive", "title": "Impact: positive", "to": "eficiencia"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "limite_eficiencia", "label": "positive", "title": "Impact: positive", "to": "eficiencia"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "sensib_invest_eff", "label": "positive", "title": "Impact: positive", "to": "eficiencia"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "FORCA_POLITICA", "label": "positive", "title": "Impact: positive", "to": "gasto_implementacao"}, {"arrows": "to", "color": "#F44336", "font": {"align": "middle", "color": "#F44336", "size": 12}, "from": "TEMPO_IMPLEMENTACAO", "label": "negative", "title": "Impact: negative", "to": "gasto_implementacao"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "capital_investimento", "label": "positive", "title": "Impact: positive", "to": "gasto_implementacao"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "ICMS_ALIQUOTA", "label": "positive", "title": "Impact: positive", "to": "icms_energia"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "TARIFA_R_MWh", "label": "positive", "title": "Impact: positive", "to": "icms_energia"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "consumo_energia", "label": "positive", "title": "Impact: positive", "to": "icms_energia"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "producao", "label": "positive", "title": "Impact: positive", "to": "icms_producao"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "icms_energia", "label": "positive", "title": "Impact: positive", "to": "icms_total"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "icms_producao", "label": "positive", "title": "Impact: positive", "to": "icms_total"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "CAPACIDADE_MAXIMA", "label": "positive", "title": "Impact: positive", "to": "producao"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "competitividade", "label": "positive", "title": "Impact: positive", "to": "producao"}, {"arrows": "to", "color": "#F44336", "font": {"align": "middle", "color": "#F44336", "size": 12}, "from": "producao", "label": "negative", "title": "Impact: negative", "to": "producao"}, {"arrows": "to", "color": "#4CAF50", "font": {"align": "middle", "color": "#4CAF50", "size": 12}, "from": "sensib_comp_prod", "label": "positive", "title": "Impact: positive", "to": "producao"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"physics": {"barnesHut": {"gravitationalConstant": -8000, "springLength": 250}, "minVelocity": 0.75}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
